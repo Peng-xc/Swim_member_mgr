@@ -41,7 +41,7 @@ typedef struct {
 } Member;
 // 场馆记录结构
 typedef struct {
-	char card_id[ID_LEN];       // 卡号
+	unsigned int mid;       // 用户ID
 	time_t entry_time;          // 入场时间
 	time_t exit_time;            // 离场时间（0表示尚未离场）
 } VenueRecord;

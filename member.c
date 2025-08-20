@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "mylib.h"
 
+#define VenueRecord_FILE_INFO "data/VenueRecord_info"
+
 void member_out(const Member* m);
+void member_entry(Member* m);
 
 
 void member_show(MemberList* ml){
@@ -40,6 +44,7 @@ void member_show(MemberList* ml){
 	{
 		printf("会员信息如下：\n");
 		member_out(ml->ms + i);
+		member_entry(ml->ms + i);
 	}
 
 	printf("\n按任意键继续......\n");
@@ -82,5 +87,63 @@ void member_out(const Member* m)
         }
 
 
+}
+
+
+
+//入场记录
+void member_entry(Member* m)
+{
+	VenueRecord* vr1 = malloc(sizeof(VenueRecord));
+	VenueRecord* vr2 = malloc(sizeof(VenueRecord));
+
+	if(vr1 == NULL && vr2 == NULL)
+	{
+		perror("会员入场登记失败！");
+		return;
+	}
+	vr1->mid = m->mid;
+	vr1->entry_time = time(NULL);
+	vr1->exit_time = 0;
+
+	FILE* fp = fopen(VenueRecord_FILE_INFO, "a+b");
+
+	if(fp == NULL) 
+	{
+		perror("会员入场登记失败!!");
+		return;
+	}
+
+	fseek(fp, 0, SEEK_END);
+	if(ftell(fp))
+	{
+		rewind(fp);
+		while(fread(vr2, sizeof(VenueRecord), 1, fp) == 1)
+		{
+			if(vr1->mid == vr2->mid)
+			{
+				struct tm* tm1 = localtime(&vr1->entry_time);
+				struct tm* tm2 = localtime(&vr2->entry_time);
+				
+				//离场或不在同一天刷卡登记一次入场
+				if(vr2->exit_time != 0 || !( (tm1->tm_year == tm2->tm_year) 
+							&& (tm1->tm_mon == tm2->tm_mon) 
+							&& (tm1->tm_mday == tm2->tm_mday) ))
+				{
+					fwrite(vr1, sizeof(VenueRecord), 1, fp);
+				}
+
+			}
+		}
+	}
+	else
+	{
+		rewind(fp);
+ 		fwrite(vr1, sizeof(VenueRecord), 1, fp);
+	}
+
+	fclose(fp);
+	free(vr1);
+	free(vr2);
 }
 
