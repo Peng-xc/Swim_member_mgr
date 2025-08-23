@@ -37,7 +37,7 @@ void init(MemberList* ml,Admin** admin)
 	*admin = calloc(MAX_ADMINS, sizeof(Admin));
 	if(ml->ms == NULL || *admin == NULL)
 	{
-		printf("callor fail");
+		printf("calloc fail");
 		return;
 	}
 
