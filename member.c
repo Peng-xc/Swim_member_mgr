@@ -5,7 +5,6 @@
 
 #include "mylib.h"
 
-#define VenueRecord_FILE_INFO "data/VenueRecord_info"
 
 void member_out(const Member* m);
 void member_entry(Member* m);
@@ -113,10 +112,47 @@ void member_out(const Member* m)
 }
 
 
+//修改剩余次数
+void update_member_times(Member *m)
+{
+	if(!m) return;
+
+	FILE *fp = fopen(MEMBER_INFO_FILE, "r+b");
+	if (!fp) {
+		perror("无法打开会员文件");
+		return;
+	}
+	Member tmp;
+	int found = 0;
+
+	while(fread(&tmp, sizeof(Member), 1, fp) == 1)
+	{
+		if(tmp.mid == m->mid)
+		{
+			fseek(fp, -sizeof(Member), SEEK_CUR);
+			fwrite(m, sizeof(Member), 1, fp);
+
+			found = 1;
+			break;
+		}
+	}
+	fclose(fp);
+	if(!found) printf("未找到会员记录！！！\n");
+
+}
+
 
 //入场记录
 void member_entry(Member *m)
 {
+
+	if (m->member_type == CIKA) {
+		if (m->times <= 0) {
+			printf("次卡剩余次数不足，请购买次数！\n");
+			return;
+		}
+	}
+
 	time_t now = time(NULL);
 	struct tm *now_tm = localtime(&now);
 	int already_entered = 0;
@@ -161,6 +197,15 @@ void member_entry(Member *m)
 	fwrite(&new_record, sizeof(VenueRecord), 1, fp);
 	fclose(fp);
 	printf("入场登记成功！\n");
+
+	//次卡 剩余次数 -1；
+	if (m->member_type == CIKA) {
+		m->times--;
+
+		update_member_times(m);
+
+		printf("次卡剩余次数: %d\n", m->times);
+	}	
 }
 
 
@@ -175,11 +220,16 @@ void member_exit(Member *m)
 
 	VenueRecord vr;
 	long last_unexited_pos = -1;
+	time_t last_entry_time = 0;
 
 	// 查找最近未离场记录
 	while (fread(&vr, sizeof(VenueRecord), 1, fp) == 1) {
 		if (vr.mid == m->mid && vr.exit_time == 0) {
-			last_unexited_pos = ftell(fp) - sizeof(VenueRecord);
+			// 找到更近的入场记录
+			if (vr.entry_time > last_entry_time) {
+				last_entry_time = vr.entry_time;
+				last_unexited_pos = ftell(fp) - sizeof(VenueRecord);
+			}
 		}
 	}
 
@@ -189,6 +239,21 @@ void member_exit(Member *m)
 		vr.exit_time = time(NULL);
 		fwrite(&vr, sizeof(VenueRecord), 1, fp);
 		printf("离场登记成功！\n");
+
+		// 格式化显示时间
+		char entry_str[20], exit_str[20];
+		struct tm *entry_tm = localtime(&vr.entry_time);
+		struct tm *exit_tm = localtime(&vr.exit_time);
+		strftime(entry_str, sizeof(entry_str), "%Y-%m-%d %H:%M", entry_tm);
+		strftime(exit_str, sizeof(exit_str), "%Y-%m-%d %H:%M", exit_tm);
+
+		printf("入场时间: %s\n", entry_str);
+		printf("离场时间: %s\n", exit_str);
+
+		// 计算停留时间（小时）
+		double duration = difftime(vr.exit_time, vr.entry_time) / 3600.0;
+		printf("停留时长: %.2f 小时\n", duration);
+
 	} else {
 		printf("无未离场记录！\n");
 	}

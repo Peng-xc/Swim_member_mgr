@@ -10,6 +10,9 @@
 #define ID_LEN 11
 #define ADMIN_FILE_INFO "data/admin_in.bat"
 #define MEMBER_INFO_FILE "data/member_in.bat"
+#define VenueRecord_FILE_INFO "data/VenueRecord_info"
+
+
 
 typedef enum
 {
