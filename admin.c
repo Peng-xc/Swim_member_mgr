@@ -12,10 +12,10 @@ static void updateMember(MemberList* ml);
 static void del_member(MemberList* ml);
 void printMemberInfo(const Member* m);
 void member_view(MemberList* ml);
+static void find_VR(void);
 
-
+//管理员登录认证
 int admin_login(Admin* admin, Admin* admin_in)
-
 {
 	if(!admin|| !admin_in) return 0; 
 
@@ -46,6 +46,7 @@ int admin_login(Admin* admin, Admin* admin_in)
 }
 
 
+//管理员菜单
 void admin_print_menu()
 {
 	system("clear");
@@ -65,6 +66,7 @@ void admin_print_menu()
 	printf("\n————————————————————————\n");
 }
 
+//管理员主页面
 int admin_menu(Admin* admin, MemberList* ml)                               
 {
 	int choice, c;
@@ -95,6 +97,7 @@ int admin_menu(Admin* admin, MemberList* ml)
 				break;
 			case 5:
 				//查看会员出入信息
+				find_VR();
 				break;
 			case 6:
 				//修改密码
@@ -312,9 +315,65 @@ Member* findMember(MemberList* ml, const char* k)
 	return NULL;
 }
 
+//打印所有会员信息
+static void member_all_print(MemberList* ml)
+{
+	int i;
+	printf("=========所有会员信息=========\n\n");
+	printf("%-10s\t%s\t%s\t%s\t%-11s\t%-11s\t注册时间\t%16s\t%-16s\t%20s\t会员状态\n", "卡号", "会员ID", "姓名", "性别","生日", "手机号","会员类型", "有效期","剩余次数");
+	
+	const char* genders[] = {"女", "男", "保密"};
+	char reg_time_str[20], expiry_str[20];
+	struct tm* tm_reg, *tm_expiry;
+        const char* types[] = {"年卡", "季卡", "月卡", "次卡"};
+
+
+	for(i = 0; i < ml->size; i++)
+	{
+		printf("%s\t", ml->ms[i].card_id);
+		printf("%u\t", ml->ms[i].mid);
+		printf("%s\t", ml->ms[i].name);
+		
+		//性别
+        	printf("%s\t", genders[ml->ms[i].gender]);
+		
+
+		//生日
+		printf("%s\t", ml->ms[i].birthday);
+		printf("%s\t", ml->ms[i].phone);
+		
+		tm_reg = localtime(&(ml->ms[i].reg_time));
+		strftime(reg_time_str, sizeof(reg_time_str), "%Y-%m-%d %H:%M", tm_reg);
+
+        	tm_expiry = localtime(&(ml->ms[i].expiry_date));
+        	strftime(expiry_str, sizeof(expiry_str), "%Y-%m-%d %H:%M", tm_expiry);
+
+		//注册时间
+        	printf("%s\t", reg_time_str);
+
+        	// 会员类型显示
+        	printf("%s\t", types[ml->ms[i].member_type]);
+
+        	if(ml->ms[i].member_type != CIKA) {
+                	printf("%s\t", expiry_str);
+			printf("%-12s\t","-");
+        	} else {
+			printf("%-19s\t","-");
+                	printf("%-12d\t", ml->ms[i].times);
+        	}
+
+        	// 会员状态
+        	printf("%s\n", ml->ms[i].state ? "已注销" : "正常");
+
+	}
+	printf("============================================\n");
+}
+
 //打印查到会员信息
 void member_view(MemberList* ml)
 {
+	member_all_print(ml);
+
 	if (!ml || ml->size == 0) {
 		printf("会员列表为空！\n");
 		return;
@@ -380,71 +439,97 @@ static void updateMember(MemberList* ml)
 				printf("新卡号: ");
 				scanf("%10s", found->card_id);
 				break;
+
 			case 2:
 				printf("新姓名: ");
 				scanf("%30s", found->name);
 				break;
+
 			case 3:
 				printf("性别(0-女,1-男,2-保密): ");
 				int sex;
-				if (scanf("%d", &sex) == 1 && sex >=0 && sex <=2) {
+				if (scanf("%d", &sex) == 1 && sex >=0 && sex <=2) 
 					found->gender = (Gender)sex;
-				} else {
+				else
 					printf("无效输入！\n");
-				}
 				break;
+
 			case 4:
 				printf("生日(YYYY-MM-DD): ");
 				scanf("%10s", found->birthday);
 				break;
+
 			case 5:
 				printf("新手机号: ");
 				scanf("%14s", found->phone);
 				break;
+
 			case 6:
 				printf("会员类型(0-年卡,1-季卡,2-月卡,3-次卡): ");
 				int type;
-				if (scanf("%d", &type) == 1 && type >=0 && type <=3) {
+				if (scanf("%d", &type) == 1 && type >=0 && type <=3) 
+				{
 					found->member_type = (MemberType)type;
 
 					// 处理有效期
-					if (found->member_type != CIKA) {
+					if (found->member_type != CIKA) 
+					{
 						time_t now = time(NULL);
-						switch(found->member_type) {
-							case ANNUAL: found->expiry_date = now + 365 * 24 * 3600; break;
-							case QUARTERLY: found->expiry_date = now + 120 * 24 * 3600; break;
-							case MONTHLY: found->expiry_date = now + 30 * 24 * 3600; break;
-							default: break;
+						switch(found->member_type) 
+						{
+							case ANNUAL: 
+								found->expiry_date = now + 365 * 24 * 3600; 
+								break;
+
+							case QUARTERLY: 
+								found->expiry_date = now + 120 * 24 * 3600; 
+								break;
+
+							case MONTHLY: 
+								found->expiry_date = now + 30 * 24 * 3600; 
+								break;
+
+							default: 
+								break;
 						}
 						found->times = 0; // 非次卡重置次数
-					} else {
+					} 
+					else 
+					{
 						printf("购买次数: ");
 						scanf("%d", &found->times);
 						found->expiry_date = 0; // 次卡无有效期
 					}
-				} else {
+				} 
+				else 
 					printf("无效类型！\n");
-				}
 				break;
+
 			case 0:
 				break;
+
 			default:
 				printf("无效选项！\n");
 		}
 
 		// 保存修改到文件
 		FILE* fp = fopen(MEMBER_INFO_FILE, "r+b");
-		if (fp) {
+		if (fp) 
+		{
 			fseek(fp, 0, SEEK_SET);
-			for (int i = 0; i < ml->size; i++) {
-				if (fwrite(&ml->ms[i], sizeof(Member), 1, fp) != 1) {
+			for (int i = 0; i < ml->size; i++) 
+			{
+				if (fwrite(&ml->ms[i], sizeof(Member), 1, fp) != 1) 
+				{
 					perror("写入文件失败");
 					break;
 				}
 			}
 			fclose(fp);
 			printf("修改已保存！\n");
-		} else {
+		} 
+		else 
+		{
 			perror("无法打开会员文件");
 		}
 
@@ -455,14 +540,16 @@ static void updateMember(MemberList* ml)
 //会员注销
 static void del_member(MemberList* ml)
 {
-	if (!ml || ml->size == 0) {
+	if (!ml || ml->size == 0) 
+	{
                 printf("会员列表为空！\n");
                 return;
         }
 
         char k[50] = {0};
         printf("请输入卡号/会员ID/手机号: ");
-        if (scanf("%49s", k) != 1) {
+        if (scanf("%49s", k) != 1) 
+	{
                 printf("输入无效！\n");
                 return;
         }
@@ -474,10 +561,13 @@ static void del_member(MemberList* ml)
 
 	// 保存修改到文件
 	FILE* fp = fopen(MEMBER_INFO_FILE, "r+b");
-	if (fp) {
+	if (fp) 
+	{
 		fseek(fp, 0, SEEK_SET);
-		for (int i = 0; i < ml->size; i++) {
-			if (fwrite(&ml->ms[i], sizeof(Member), 1, fp) != 1) {
+		for (int i = 0; i < ml->size; i++) 
+		{
+			if (fwrite(&ml->ms[i], sizeof(Member), 1, fp) != 1) 
+			{
 				perror("写入文件失败");
 				break;
 			}
@@ -491,4 +581,51 @@ static void del_member(MemberList* ml)
 	}
 
 
+}
+
+
+//查看会员入场离场记录
+static void find_VR(void)
+{
+	int16_t i;
+	VenueRecord vr;
+	FILE* fp = fopen(VenueRecord_FILE_INFO, "rb");
+
+	if(fp)
+	{
+		struct tm* tm_entry, *tm_exit; 
+		char entry_str[20], exit_str[20];
+		
+		printf("=======会员入场和离场信息======\n");
+		printf("%-20s\t%-20s\t%-20s\t\n","会员ID","入场时间", "离场时间");
+		
+		while(fread(&vr, sizeof(VenueRecord), 1, fp) == 1)
+		{
+			printf("%-20u\t", vr.mid);
+
+			//入场时间
+			tm_entry = localtime(&vr.entry_time);
+			strftime(entry_str, sizeof(entry_str), "%Y-%m-%d %H:%M", tm_entry);
+
+			printf("%-20s\t", entry_str);
+
+			//离场时间
+			tm_exit = localtime(&vr.entry_time);
+                        strftime(exit_str, sizeof(exit_str), "%Y-%m-%d %H:%M", tm_exit);
+		
+			printf("%-20s\n", exit_str);
+		}
+		
+		printf("=============================\n");
+
+	}
+	else
+	{
+		printf("无会员入场信息！\n");
+	}
+
+	fclose(fp);
+	
+	printf("请按任意键继续.....\n");
+	getchar();
 }

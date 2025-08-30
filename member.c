@@ -102,11 +102,10 @@ void member_out(const Member* m)
 	const char* types[] = {"年卡", "季卡", "月卡", "次卡"};
 	printf("会员类型: %s\n", types[m->member_type]);
 
-	if(m->member_type != CIKA) {
+	if(m->member_type != CIKA) 
 		printf("有效期至: %s\n", expiry_str);
-	} else {
+	else 
 		printf("剩余次数: %d\n", m->times);
-	}
 
 
 }
@@ -118,7 +117,8 @@ void update_member_times(Member *m)
 	if(!m) return;
 
 	FILE *fp = fopen(MEMBER_INFO_FILE, "r+b");
-	if (!fp) {
+	if (!fp) 
+	{
 		perror("无法打开会员文件");
 		return;
 	}
@@ -146,8 +146,10 @@ void update_member_times(Member *m)
 void member_entry(Member *m)
 {
 
-	if (m->member_type == CIKA) {
-		if (m->times <= 0) {
+	if (m->member_type == CIKA)
+	{
+		if (m->times <= 0) 
+		{
 			printf("次卡剩余次数不足，请购买次数！\n");
 			return;
 		}
@@ -159,14 +161,18 @@ void member_entry(Member *m)
 
 	// 检查是否已入场
 	FILE *fp = fopen(VenueRecord_FILE_INFO, "rb");
-	if (fp) {
+	if (fp) 
+	{
 		VenueRecord vr;
-		while (fread(&vr, sizeof(VenueRecord), 1, fp) == 1) {
-			if (vr.mid == m->mid && vr.exit_time == 0) {
+		while (fread(&vr, sizeof(VenueRecord), 1, fp) == 1) 
+		{
+			if (vr.mid == m->mid && vr.exit_time == 0) 
+			{
 				struct tm *entry_tm = localtime(&vr.entry_time);
 				if (entry_tm->tm_year == now_tm->tm_year &&
 						entry_tm->tm_mon == now_tm->tm_mon &&
-						entry_tm->tm_mday == now_tm->tm_mday) {
+						entry_tm->tm_mday == now_tm->tm_mday) 
+				{
 					already_entered = 1;
 					break;
 				}
@@ -175,13 +181,15 @@ void member_entry(Member *m)
 		fclose(fp);
 	}
 
-	if (already_entered) {
+	if (already_entered) 
+	{
 		printf("今日已入场，无需重复登记！\n");
 		return;
 	}
 
 	// 创建新入场记录
-	VenueRecord new_record = {
+	VenueRecord new_record = 
+	{
 		.mid = m->mid,
 		.entry_time = now,
 		.exit_time = 0  // 0表示尚未离场
@@ -189,7 +197,8 @@ void member_entry(Member *m)
 
 	// 追加写入文件
 	fp = fopen(VenueRecord_FILE_INFO, "ab");
-	if (!fp) {
+	if (!fp) 
+	{
 		perror("登记入场失败");
 		return;
 	}
@@ -199,7 +208,8 @@ void member_entry(Member *m)
 	printf("入场登记成功！\n");
 
 	//次卡 剩余次数 -1；
-	if (m->member_type == CIKA) {
+	if (m->member_type == CIKA) 
+	{
 		m->times--;
 
 		update_member_times(m);
@@ -213,7 +223,8 @@ void member_entry(Member *m)
 void member_exit(Member *m)
 {
 	FILE *fp = fopen(VenueRecord_FILE_INFO, "r+b");
-	if (!fp) {
+	if (!fp) 
+	{
 		perror("打开场地记录失败");
 		return;
 	}
@@ -223,10 +234,13 @@ void member_exit(Member *m)
 	time_t last_entry_time = 0;
 
 	// 查找最近未离场记录
-	while (fread(&vr, sizeof(VenueRecord), 1, fp) == 1) {
-		if (vr.mid == m->mid && vr.exit_time == 0) {
+	while (fread(&vr, sizeof(VenueRecord), 1, fp) == 1) 
+	{
+		if (vr.mid == m->mid && vr.exit_time == 0) 
+		{
 			// 找到更近的入场记录
-			if (vr.entry_time > last_entry_time) {
+			if (vr.entry_time > last_entry_time) 
+			{
 				last_entry_time = vr.entry_time;
 				last_unexited_pos = ftell(fp) - sizeof(VenueRecord);
 			}
@@ -234,7 +248,8 @@ void member_exit(Member *m)
 	}
 
 	// 更新离场时间
-	if (last_unexited_pos != -1) {
+	if (last_unexited_pos != -1) 
+	{
 		fseek(fp, last_unexited_pos, SEEK_SET);
 		vr.exit_time = time(NULL);
 		fwrite(&vr, sizeof(VenueRecord), 1, fp);
@@ -254,7 +269,9 @@ void member_exit(Member *m)
 		double duration = difftime(vr.exit_time, vr.entry_time) / 3600.0;
 		printf("停留时长: %.2f 小时\n", duration);
 
-	} else {
+	} 
+	else 
+	{
 		printf("无未离场记录！\n");
 	}
 
