@@ -135,10 +135,11 @@ void main_menu(MemberList* ml, Admin* admin)
 				scanf("%s", admin_in.username);
 				printf("请输入密码：");
 				scanf("%16s", admin_in.password);
+				while((c = getchar()) != '\n' && c != EOF);
 
 				if(admin_login(admin, &admin_in))
 				{
-					if(admin_menu(admin, ml))
+					if(admin_menu(&admin_in, ml))
 					{
 						return;
 					}
@@ -146,6 +147,10 @@ void main_menu(MemberList* ml, Admin* admin)
 				else
 				{
 					perror("用户名或密码错误！！！\n");
+					
+					printf("回车继续。。。。\n");
+					getchar();
+
 				}
 				break;
 			case 0://退出系统

@@ -13,9 +13,10 @@ static void del_member(MemberList* ml);
 void printMemberInfo(const Member* m);
 void member_view(MemberList* ml);
 static void find_VR(void);
+static void update_password(Admin* admin);
 
 //管理员登录认证
-int admin_login(Admin* admin, Admin* admin_in)
+Admin* admin_login(Admin* admin, Admin* admin_in)
 {
 	if(!admin|| !admin_in) return 0; 
 
@@ -38,11 +39,11 @@ int admin_login(Admin* admin, Admin* admin_in)
 		for(i = 0; i < size; i++)
 		{
 			if(strcmp(admin[i].username, admin_in->username) == 0 && strcmp(admin[i].password, admin_in->password)==0)
-				return 1;
+				return admin_in;
 		}
 	}
 	fclose(fp);
-	return 0;	
+	return NULL;	
 }
 
 
@@ -101,6 +102,7 @@ int admin_menu(Admin* admin, MemberList* ml)
 				break;
 			case 6:
 				//修改密码
+				update_password(admin);
 				break;
 			case 7:
 				//新增管理员
@@ -292,7 +294,7 @@ void printMemberInfo(const Member* m)
 	getchar();
 }
 
-//查询会员信息
+//条件查询会员信息
 Member* findMember(MemberList* ml, const char* k)
 {
 	if (!ml || !k || ml->size == 0) return NULL;
@@ -369,7 +371,7 @@ static void member_all_print(MemberList* ml)
 	printf("============================================\n");
 }
 
-//打印查到会员信息
+//查询会员信息功能
 void member_view(MemberList* ml)
 {
 	member_all_print(ml);
@@ -378,17 +380,20 @@ void member_view(MemberList* ml)
 		printf("会员列表为空！\n");
 		return;
 	}
+	printf("是否查询某个会员信息（y/n）:");
+	if(getchar() == 'y')
+	{
+		char k[50] = {0};
+		printf("请输入卡号/会员ID/手机号: ");
+		if (scanf("%49s", k) != 1) {
+			printf("输入无效！\n");
+			return;
+		}
+		getchar();
 
-	char k[50] = {0};
-	printf("请输入卡号/会员ID/手机号: ");
-	if (scanf("%49s", k) != 1) {
-		printf("输入无效！\n");
-		return;
+		Member* found = findMember(ml, k);
+		found ? printMemberInfo(found) : printf("无此会员信息！\n");
 	}
-	getchar();
-
-	Member* found = findMember(ml, k);
-	found ? printMemberInfo(found) : printf("无此会员信息！\n");
 }
 
 //修改会员信息
@@ -587,7 +592,6 @@ static void del_member(MemberList* ml)
 //查看会员入场离场记录
 static void find_VR(void)
 {
-	int16_t i;
 	VenueRecord vr;
 	FILE* fp = fopen(VenueRecord_FILE_INFO, "rb");
 
@@ -628,4 +632,72 @@ static void find_VR(void)
 	
 	printf("请按任意键继续.....\n");
 	getchar();
+}
+
+
+
+//修改密码
+static void update_password(Admin* admin)
+{
+	FILE* fp = fopen(ADMIN_FILE_INFO, "r+b");
+	
+	if(fp == NULL)
+	{
+		perror("无法打开管理员文件");
+		return;
+	}
+
+	Admin am;
+	int8_t found;
+	char p1[17], p2[17];
+
+	while(1)
+	{
+		printf("新的密码：");
+		fgets(p1, sizeof(p1), stdin);
+		p1[strcspn(p1,"\n")] = '\0';
+
+		printf("重新输入新的密码：");
+		fgets(p2, sizeof(p2), stdin);
+		p2[strcspn(p1,"\n")] = '\0';
+
+		if(strcmp(p1, p2) == 0)
+		{
+			// 更新当前内存中的密码
+			strcpy(admin->password, p1);
+
+			// 更新文件中的管理员密码
+			while(fread(&am, sizeof(Admin), 1, fp) == 1)
+			{
+				if(!strcmp(am.username, admin->username))
+				{
+					fseek(fp, -sizeof(Admin), SEEK_CUR);
+					fwrite(admin, sizeof(Admin), 1, fp);
+
+					found = 1;
+					break;
+				}
+			}
+			if (found) 
+			{
+				printf("修改密码成功！\n");
+			} 
+			else 
+			{
+				printf("未找到管理员记录！\n");
+			}
+
+			fclose(fp);
+			
+			printf("按回车键继续...\n");
+			getchar();
+			
+			return;
+		}
+		else
+		{
+			perror("两次密码不匹配，请重新输入！\n");
+		}
+
+	}
 }
