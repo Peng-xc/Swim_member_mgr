@@ -106,6 +106,7 @@ int admin_menu(Admin* admin, MemberList* ml)
 				break;
 			case 7:
 				//新增管理员
+				printf("暂无此功能！！！\n");
 				break;
 			case 8:
 				//注销登录
@@ -614,7 +615,7 @@ static void find_VR(void)
 			printf("%-20s\t", entry_str);
 
 			//离场时间
-			tm_exit = localtime(&vr.entry_time);
+			tm_exit = localtime(&vr.exit_time);
                         strftime(exit_str, sizeof(exit_str), "%Y-%m-%d %H:%M", tm_exit);
 		
 			printf("%-20s\n", exit_str);
@@ -659,7 +660,7 @@ static void update_password(Admin* admin)
 
 		printf("重新输入新的密码：");
 		fgets(p2, sizeof(p2), stdin);
-		p2[strcspn(p1,"\n")] = '\0';
+		p2[strcspn(p2,"\n")] = '\0';
 
 		if(strcmp(p1, p2) == 0)
 		{
