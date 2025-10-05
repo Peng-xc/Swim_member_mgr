@@ -149,6 +149,64 @@ static unsigned int get_new_mid(void)
 	return mid;
 }
 
+// 手机号校验函数
+static int validate_phone(const char* phone) 
+{
+	if (strlen(phone) != 11) 
+		return 0;
+	for (int i = 0; i < 11; i++) 
+	{
+		if (phone[i] < '0' || phone[i] > '9') 
+			return 0;
+	}
+	return 1;
+}
+
+// 生日格式校验函数
+static int validate_birthday(const char* birthday) 
+{
+	if (strlen(birthday) != 10) 
+		return 0;
+	if (birthday[4] != '-' || birthday[7] != '-') 
+		return 0;
+
+	for (int i = 0; i < 10; i++) 
+	{
+		if (i == 4 || i == 7) 
+			continue;
+		if (birthday[i] < '0' || birthday[i] > '9') 
+			return 0;
+	}
+
+	// 简单的日期合理性检查
+	int year, month, day;
+	if (sscanf(birthday, "%d-%d-%d", &year, &month, &day) != 3) 
+		return 0;
+	if (year < 1900 || year > 2100) 
+		return 0;
+	if (month < 1 || month > 12) 
+		return 0;
+	if (day < 1 || day > 31) 
+		return 0;
+
+	return 1;
+}
+
+
+// 卡号唯一性校验函数
+static int is_cardid_unique(MemberList* ml, const char* card_id, unsigned int exclude_mid) 
+{
+    for (int i = 0; i < ml->size; i++) 
+    {
+        if (ml->ms[i].mid != exclude_mid && strcmp(ml->ms[i].card_id, card_id) == 0) 
+	{
+            return 0; // 卡号已存在
+        }
+    }
+    return 1; // 卡号唯一
+}
+
+
 //新增会员
 static void addMember(MemberList* ml)
 {
@@ -163,47 +221,115 @@ static void addMember(MemberList* ml)
 	system("clear");
 	printf("\n---------会员注册---------\n");
 	printf("\n请按照如下提示输入会员信息：\n");
-	printf("卡号：");
-	scanf("%10s", m->card_id);
+	
+	// 卡号输入与校验
+	while(1) 
+	{
+		printf("卡号：");
+		scanf("%10s", m->card_id);
+		getchar();
+
+		if(!is_cardid_unique(ml, m->card_id, 0)) 
+		{
+			printf("该卡号已存在，请重新输入！\n");
+			continue;
+		}
+		break;
+	}
 
 	printf("姓名：");
 	scanf("%30s", m->name);
 
 	int sex;
-	printf("性别(0-女， 1-男，2-保密)：");
-	scanf("%d", &sex);
-	if(sex >=0 && sex <=2)
+	while(1) 
 	{
-		m->gender = (Gender)sex;
-	}else{
-		printf("无效性别选择，默认为保密\n");
-		m->gender = secure;
+		printf("性别(0-女， 1-男，2-保密)：");
+		if(scanf("%d", &sex) != 1) 
+		{
+			printf("输入无效，请重新输入！\n");
+			while(getchar() != '\n'); // 清除输入缓冲区
+			continue;
+		}
+		getchar();
+
+		if(sex >=0 && sex <=2) 
+		{
+			m->gender = (Gender)sex;
+			break;
+		} 
+		else 
+		{
+			printf("无效性别选择，请重新输入！\n");
+		}
 	}
 
-	printf("生日（YYYY-MM-DD）：");
-	scanf("%10s", m->birthday);
+	// 生日输入与校验
+	while(1) 
+	{
+		printf("生日（YYYY-MM-DD）：");
+		scanf("%10s", m->birthday);
+		getchar();
 
-	printf("手机号：");
-	scanf("%11s", m->phone);
+		if(validate_birthday(m->birthday)) 
+		{
+			break;
+		} 
+		else 
+		{
+			printf("生日格式不正确，请重新输入！\n");
+		}
+	}
 
+	// 手机号输入与校验
+	while(1) 
+	{
+		printf("手机号：");
+		scanf("%11s", m->phone);
+		getchar();
+
+		if(validate_phone(m->phone)) 
+		{
+			break;
+		} 
+		else 
+		{
+			printf("手机号格式不正确，请重新输入！\n");
+		}
+	}
 	m->reg_time = time(NULL); //获取当前时间
 
-	//会员类型
+	// 会员类型输入与校验
 	int type;
-	printf("会员类型(0-年卡, 1-季卡, 2-月卡, 3-次卡)：");
-
-	scanf("%d", &type);
-	switch(type)
+	while(1) 
 	{
-		case 0: m->member_type = ANNUAL;
+		printf("会员类型(0-年卡, 1-季卡, 2-月卡, 3-次卡)：");
+
+		if(scanf("%d", &type) != 1) 
+		{
+			printf("输入无效，请重新输入！\n");
+			while(getchar() != '\n');
+			continue;
+		}
+		getchar();
+
+		if(type >= 0 && type <= 3) 
+		{
+			switch(type) {
+				case 0: m->member_type = ANNUAL; 
+					break;
+				case 1: m->member_type = QUARTERLY; 
+					break;
+				case 2: m->member_type = MONTHLY; 
+					break;
+				case 3: m->member_type = CIKA; 
+					break;
+			}
 			break;
-		case 1: m->member_type = QUARTERLY;
-			break;
-		case 2: m->member_type = MONTHLY;
-			break;
-		case 3: m->member_type = CIKA;
-			break;
-		default: printf("无此卡型");
+		} 
+		else 
+		{
+			printf("无效的会员类型，请重新输入！\n");
+		}
 	}
 
 	//有效期
@@ -221,13 +347,24 @@ static void addMember(MemberList* ml)
 		default:
 			break;
 	}
+
 	if(m->member_type == CIKA) 
 	{
-		printf("购买次数：");
-		scanf("%d", &m->times);
+		while(1) 
+		{
+			printf("购买次数：");
+			if(scanf("%d", &m->times) != 1 || m->times <= 0) 
+			{
+				printf("次数必须为正整数，请重新输入！\n");
+				while(getchar() != '\n');
+				continue;
+			}
+			getchar();
+			break;
+		}
 	}
-	m->state = 0;
 
+	m->state = 0;
 	m->mid = get_new_mid();
 
 	FILE* fp = fopen(MEMBER_INFO_FILE, "ab");
